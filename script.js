@@ -1,12 +1,14 @@
 const cardImg = document.getElementById('card-img');
 const tableSection = document.getElementById('table-section');
 const actionButton = document.getElementById('get-card-button');
-const board = document.getElementById('board-section');
+const boardUI = document.getElementById('board-section');
+const highHandUI = document.getElementById('high-hand');
 
 class Card {
-    constructor(rank, suit) {
+    constructor(rank, suit, weight) {
         this.rank = rank;
         this.suit = suit;
+        this.weight = weight;
     }
 }
 
@@ -17,19 +19,20 @@ class Deck {
 
     deckCreator() {
 
-        let ranks = [2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K', 'A'];
+        const ranks = [2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K', 'A'];
         const hearts = '♥'
         const diamonds = '♦'
         const spades = '♣'
         const clubs = '♠'
-        let suits = [hearts, spades, diamonds, clubs];
+        const suits = [hearts, spades, diamonds, clubs];
 
 
         for (let suit of suits) {
-            for (let rank of ranks) {
-                this.deck.push(new Card(rank, suit));
+            ranks.forEach((rank, index) => {
+                this.deck.push(new Card(rank, suit, index));
             }
-        }
+            )
+        };
     }
 
     shuffle() {
@@ -67,6 +70,7 @@ class Playing extends Player {
         this.bettingPosition = 0;
         this.myStack = myStack;
         this.currentHand = [];
+        this.weightHand = 0; //0:highCard 1:onePair 2:twoPair 3:threeOfaKing 4:straight 5:flush 6:fullHouse 7:fouraKing 8:straightFlush 9:royalFlush
         this.playerUI = this.initPlayerUI(id);
     }
 
@@ -89,12 +93,22 @@ class Room {
         this.roomPlayers = [];
         this.board = [];
         this.dealer = new Dealer(this);
+        this.gameManagement = new GameManagement(this, this.dealer);
+        this.betManager = new BetManager();
+        this.ruleManager = new RuleManager(this, this.roomPlayers, this.board);
+        this.winnerManager = new WinnerManager();
+        this.playerManager = new PlayerManager();
+        this.eventManager = new EventManager();
     }
 
     addPlayers(player) {
         this.roomPlayers.push(players[player.name]);
         console.log(players[player.name]);
         players[player.name].updatePlayerUI();  // Asumindo que isto é definido em algum lugar.
+    }
+
+    updateBoardUI() {
+        boardUI.innerText = `${this.board.map(card => `${card.rank}${card.suit}`).join(' | ')}`;
     }
 
     dealingACard() {
@@ -112,6 +126,10 @@ class Room {
     showRiver() {
         this.dealer.showRiver();
     }
+
+    bestHand() {
+        this.ruleManager.bestHand();
+    }
 }
 
 class Dealer {
@@ -128,12 +146,11 @@ class Dealer {
         let players = this.room.roomPlayers;
         //distribuição
         for (let i = 0; i < 2; i++) {
-            for (let j = 0; j < players.length; j++) {
-                players[j].currentHand.push(this.deck.getCard());
-                players[j].updatePlayerUI();
+            for (let player of players) {
+                player.currentHand.push(this.deck.getCard());
+                player.updatePlayerUI();
             }
         }
-
     }
 
     showFlop() {
@@ -141,8 +158,11 @@ class Dealer {
         this.deck.getCard();
 
         const flop = this.deck.getFlop();
-
-        console.log(flop);
+        flop.forEach(card => { this.room.board.push(card) });
+        this.room.updateBoardUI();
+        for (const player of this.room.roomPlayers) {
+            flop.forEach(card => { player.currentHand.push(card) });
+        }
     }
 
     showTurn() {
@@ -150,7 +170,12 @@ class Dealer {
         this.deck.getCard();
 
         const turn = this.deck.getCard();
-        console.log(turn);
+        this.room.board.push(turn);
+        this.room.updateBoardUI();
+        for (const player of this.room.roomPlayers) {
+            player.currentHand.push(turn);
+        }
+
 
     }
 
@@ -159,9 +184,101 @@ class Dealer {
         this.deck.getCard();
 
         const river = this.deck.getCard();
-        console.log(river);
+        this.room.board.push(river);
+        this.room.updateBoardUI();
+        for (const player of this.room.roomPlayers) {
+            player.currentHand.push(river);
+        }
     }
 
+
+
+}
+
+class GameManagement {
+    constructor(room, dealer) {
+        this.room = room;
+        this.dealer = dealer;
+    }
+}
+
+class BetManager {
+    initializeBettingRound(players) {
+        // Setup betting for the round
+    }
+
+    processBettingRound(players) {
+        // Process bets
+    }
+
+    distributePot(winner) {
+        // Handle pot distribution
+    }
+}
+
+class RuleManager {
+    constructor(room, players, board) {
+        this.room = room;
+        this.players = players;
+        this.board = board;
+        this.bestHands = {};
+
+    }
+
+
+
+
+    bestHand() {
+        let bestHandPlayer = [{ weight: 0 }, { weight: 0 }, { weight: 0 }, { weight: 0 }, { weight: 0 }, { weight: 0 }, { weight: 0 }];
+        let bestPlayer = '';
+
+
+        for (const player of this.players) {
+            let i = 6;
+            player.currentHand.sort((a, b) => a.weight - b.weight);
+
+            const test = (i) => {
+                if (player.currentHand[i].weight > bestHandPlayer[i].weight) {
+                    bestHandPlayer = player.currentHand;
+                    console.log(bestHandPlayer)
+                    bestPlayer = player.name;
+
+                } else if (player.currentHand[i].weight == bestHandPlayer[i].weight && i > 1) {
+                    i--
+                    console.log(i)
+                    test(i);
+                }else if (i < 2){
+                    bestPlayer += ` e ${player.name}`
+                }
+            }
+            test(i);
+
+        };
+
+        console.log(bestPlayer)
+    }
+
+}
+
+class WinnerManager {
+    determineWinner(players, board) {
+        // Logic to determine the winner
+        return winner;
+    }
+}
+
+class PlayerManager {
+    addPlayers(players) {
+        // Add players to the game
+    }
+
+    removePlayer(player) {
+        // Remove player from the game
+    }
+}
+
+class EventManager {
+    // Manage non-gameplay related events
 }
 
 const getRandomNumber = () => {
@@ -207,7 +324,6 @@ actionButton.onclick = () => {
                 rooms[room].addPlayers(playerData[numPlayersRoom]);
                 numPlayersRoom++
             }
-            console.log(rooms);
             break;
         case 1:
             rooms[room].dealingACard();
@@ -221,7 +337,11 @@ actionButton.onclick = () => {
         case 4:
             rooms[room].showRiver();
             break;
+        case 5:
+            rooms[room].bestHand();
+            highHandUI.innerText = 'aaaaaaaaa';
+            break;
     }
-
     turn++
 }
+
