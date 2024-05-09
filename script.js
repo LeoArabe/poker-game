@@ -103,7 +103,6 @@ class Room {
 
     addPlayers(player) {
         this.roomPlayers.push(players[player.name]);
-        console.log(players[player.name]);
         players[player.name].updatePlayerUI();  // Asumindo que isto é definido em algum lugar.
     }
 
@@ -127,8 +126,8 @@ class Room {
         this.dealer.showRiver();
     }
 
-    bestHand() {
-        this.ruleManager.bestHand();
+    straight() {
+        this.ruleManager.flush();
     }
 }
 
@@ -225,39 +224,149 @@ class RuleManager {
 
     }
 
+    flush() {
+        let playeros = [
+            { name: 'pedro', currentHand: [{ weight: '♦', }, { weight: '♦', }, { weight: '♥', }, { weight: '♦', }, { weight: '♥', }, { weight: '♦', }, { weight: '♦', }] },
+            { name: 'leandro', currentHand: [{ weight: '♥', }, { weight: '♥', }, { weight: '♠', }, { weight: '♠', }, { weight: '♣', }, { weight: '♣', }, { weight: '♠', }] },
+            { name: 'jose', currentHand: [{ weight: '♥', }, { weight: '♣', }, { weight: '♣', }, { weight: '♠', }, { weight: '♠', }, { weight: '♠', }, { weight: '♠', }] },
+            { name: 'paulo', currentHand: [{ weight: '♥', }, { weight: '♠', }, { weight: '♠', }, { weight: '♣', }, { weight: '♠', }, { weight: '♣', }, { weight: '♠', }] },
+        ];
 
+        let hand = [];
 
+        playeros.forEach(player => {
+            const suits = [];
+            player.currentHand.forEach(handSuit => {
+                let i = suits.findIndex(suit => suit.naipe === handSuit.weight);
+                if (i >= 0) {
+                    suits[i].quantie += 1;
+                } else {
+                    suits.push({ naipe: handSuit.weight, quantie: 1 });
+                }
+            })
+            hand.push({ player: player.name, hand: suits })
+        });
+
+        
+        console.log(hand)
+    }
+
+    straight() {
+        const p = { playerName: 'jose', currentHand: [{ weight: 1, }, { weight: 1, }, { weight: 1, }, { weight: 1, }, { weight: 1, }, { weight: 1, }, { weight: 1, }], }
+        let playeros = [
+            { name: 'pedro', currentHand: [{ weight: 1, }, { weight: 1, }, { weight: 2, }, { weight: 3, }, { weight: 4, }, { weight: 5, }, { weight: 1, }] },
+            { name: 'leandro', currentHand: [{ weight: 1, }, { weight: 2, }, { weight: 3, }, { weight: 4, }, { weight: 5, }, { weight: 1, }, { weight: 1, }] },
+            { name: 'jose', currentHand: [{ weight: 7, }, { weight: 10, }, { weight: 1, }, { weight: 2, }, { weight: 3, }, { weight: 4, }, { weight: 5, }] },
+            { name: 'paulo', currentHand: [{ weight: 3, }, { weight: 2, }, { weight: 5, }, { weight: 1, }, { weight: 2, }, { weight: 3, }, { weight: 4, }] },
+        ];
+        let flushHand = [{ highCard: '', weight: 5 }]
+        let straight = [{ highCard: '', weight: 4 }]
+        let moreThanOne = [
+            { highPairRank: '', weight: 1 }, { highTwoPairRank: '', weight: 2 }, { highThreeRank: '', weight: 3 },
+            { highFullHouseRank: '', weight: 6 }, { highFourRank: '', weight: 7 },
+        ];
+
+        let hand = [];
+
+        for (const player of playeros) {
+            player.currentHand.sort((a, b) => a.weight - b.weight);
+            console.log(player)
+            let i = 6;
+            const test = (i) => {
+
+                if (i > 3 && player.currentHand[i].weight === player.currentHand[i - 1].weight + 1) {
+                    if (player.currentHand[i - 1].weight === player.currentHand[i - 2].weight + 1) {
+                        if (player.currentHand[i - 2].weight === player.currentHand[i - 3].weight + 1) {
+                            if (player.currentHand[i - 3].weight === player.currentHand[i - 4].weight + 1) {
+                                console.log(`${player.name} tem sequência`)
+                                hand.push = { name: player.name, playerHand: 'straight' };
+                            }
+                        }
+                    } else {
+                        i -= 2;
+                        test(i);
+                    }
+                } else {
+                    i--
+                    test(i);
+                }
+            };
+            test(i)
+            console.log(hand)
+        }
+    }
 
     bestHand() {
-        let bestHandPlayer = [{ weight: 0 }, { weight: 0 }, { weight: 0 }, { weight: 0 }, { weight: 0 }, { weight: 0 }, { weight: 0 }];
-        let bestPlayer = '';
+        let flushHand = [{ highCard: '', weight: 5 }]
+        let straight = [{ highCard: '', weight: 4 }]
+        let moreThanOne = [
+            { highPairRank: '', weight: 1 }, { highTwoPairRank: '', weight: 2 }, { highThreeRank: '', weight: 3 },
+            { highFullHouseRank: '', weight: 6 }, { highFourRank: '', weight: 7 },
+        ];
 
+        let hand = [];
 
         for (const player of this.players) {
+            player.currentHand.sort((a, b) => a.weight - b.weight);
+            console.log(player)
+            let i = 6;
+
+            const test = (i) => {
+
+                if (i > 0 && player.currentHand[i].rank === player.currentHand[i - 1].rank) {
+                    if (i > 1 && player.currentHand[i - 1].rank === player.currentHand[i - 2].rank) {
+                        if (i > 2 && player.currentHand[i - 2].rank === player.currentHand[i - 3].rank) {
+                            console.log(`${player.name} tem quadra`)
+                            hand.push = { name: player.name, four: `${player.currentHand[i].rank}` };
+                            i = i - 2;
+                        } else {
+                            console.log(`${player.name} tem trinca`)
+                            hand.push({ name: player.name, three: `${player.currentHand[i].rank}` });
+                            i--
+                        }
+                    } else {
+                        console.log(`${player.name} tem par`)
+                        hand.push({ name: player.name, pair: `${player.currentHand[i].rank}` });
+                    }
+                    i--
+                    test(i)
+                } else if (i > 0) {
+                    i--
+                    test(i)
+                }
+            }
+            test(i);
+        };
+        console.log(hand)
+    }
+
+    highHand() {
+        let highRankPlayer = [{ weight: 0 }, { weight: 0 }, { weight: 0 }, { weight: 0 }, { weight: 0 }, { weight: 0 }, { weight: 0 }];
+        let bestHandPlayer = '';
+
+        for (const player of this.players) {
+            console.log(player)
             let i = 6;
             player.currentHand.sort((a, b) => a.weight - b.weight);
 
             const test = (i) => {
-                if (player.currentHand[i].weight > bestHandPlayer[i].weight) {
-                    bestHandPlayer = player.currentHand;
-                    console.log(bestHandPlayer)
-                    bestPlayer = player.name;
+                if (player.currentHand[i].weight > highRankPlayer[i].weight) {
+                    highRankPlayer = player.currentHand;
+                    console.log(highRankPlayer)
+                    bestHandPlayer = player.name;
 
-                } else if (player.currentHand[i].weight == bestHandPlayer[i].weight && i > 1) {
+                } else if (player.currentHand[i].weight == highRankPlayer[i].weight && i > 1) {
                     i--
                     console.log(i)
                     test(i);
-                }else if (i < 2){
-                    bestPlayer += ` e ${player.name}`
+                } else if (i < 2) {
+                    bestHandPlayer += ` e ${player.name}`
                 }
             }
             test(i);
-
         };
-
-        console.log(bestPlayer)
+        console.log(bestHandPlayer)
     }
-
 }
 
 class WinnerManager {
@@ -338,8 +447,8 @@ actionButton.onclick = () => {
             rooms[room].showRiver();
             break;
         case 5:
-            rooms[room].bestHand();
-            highHandUI.innerText = 'aaaaaaaaa';
+            rooms[room].straight();
+            //highHandUI.innerText = 'aaaaaaaaa';
             break;
     }
     turn++
